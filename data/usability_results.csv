@@ -1,0 +1,2 @@
+participant_id,submitted_at,consent,age_range,visited_national_park,travel_app_frequency,device_type,browser,task1_ease,task1_completion,task1_confusion,task1_comments,task2_ease,task2_completion,task2_confusion,task2_comments,task3_ease,task3_completion,task3_confusion,task3_comments,overall_satisfaction,most_useful_feature,least_useful_feature,would_use_again,improvement_suggestion
+P-4CEABC11,2026-07-26T02:59:55,True,25–34,Yes,Frequently,Laptop computer,Chrome,4,Yes,Nothihng,N/A,4,Yes,Nothing,N/A,4,Yes,Nothing,N/A,5,Locating parks by activities,Nothing,Yes,Nothing
