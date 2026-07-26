@@ -1186,9 +1186,130 @@ def thank_you_page():
         )
 
 
+
+
+# ---------------------------------------------------------
+# RESEARCHER ADMIN RESULTS
+# ---------------------------------------------------------
+
+def researcher_results_page():
+    """Private researcher-only page for viewing and downloading saved results."""
+    st.title("Researcher Results")
+
+    try:
+        expected_password = st.secrets["ADMIN_PASSWORD"]
+    except KeyError:
+        st.error(
+            "ADMIN_PASSWORD is not configured in Streamlit Secrets. "
+            "Add it before using the researcher results page."
+        )
+        return
+
+    entered_password = st.text_input(
+        "Researcher password",
+        type="password",
+        key="researcher_password",
+    )
+
+    if entered_password != expected_password:
+        if entered_password:
+            st.error("Incorrect password.")
+        else:
+            st.info("Enter the researcher password to view study results.")
+        return
+
+    project_directory = Path(__file__).resolve().parent
+    results_file = project_directory / "data" / "usability_results.csv"
+
+    if not results_file.exists():
+        st.warning(
+            "No results file was found on this Streamlit instance. "
+            "The cloud app may have restarted before the data was exported."
+        )
+        return
+
+    try:
+        results_df = pd.read_csv(results_file)
+    except Exception as error:
+        st.error(f"The results file could not be opened: {error}")
+        return
+
+    if results_df.empty:
+        st.warning("The results file exists, but it does not contain any responses.")
+        return
+
+    st.success(f"Found {len(results_df)} completed participant response(s).")
+
+    metric_1, metric_2, metric_3 = st.columns(3)
+
+    completion_columns = [
+        column
+        for column in [
+            "task1_completion",
+            "task2_completion",
+            "task3_completion",
+        ]
+        if column in results_df.columns
+    ]
+
+    total_task_responses = 0
+    successful_task_responses = 0
+
+    for column in completion_columns:
+        values = results_df[column].fillna("").astype(str)
+        total_task_responses += len(values)
+        successful_task_responses += values.str.lower().eq("yes").sum()
+
+    success_rate = (
+        successful_task_responses / total_task_responses * 100
+        if total_task_responses
+        else 0
+    )
+
+    satisfaction_average = (
+        pd.to_numeric(
+            results_df.get("overall_satisfaction", pd.Series(dtype=float)),
+            errors="coerce",
+        ).mean()
+        if "overall_satisfaction" in results_df.columns
+        else float("nan")
+    )
+
+    with metric_1:
+        st.metric("Participants", len(results_df))
+
+    with metric_2:
+        st.metric("Task Success Rate", f"{success_rate:.0f}%")
+
+    with metric_3:
+        if pd.notna(satisfaction_average):
+            st.metric("Average Satisfaction", f"{satisfaction_average:.2f} / 5")
+        else:
+            st.metric("Average Satisfaction", "N/A")
+
+    st.subheader("Raw Study Data")
+    st.dataframe(results_df, use_container_width=True)
+
+    csv_data = results_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "Download usability_results.csv",
+        data=csv_data,
+        file_name="usability_results.csv",
+        mime="text/csv",
+        type="primary",
+        use_container_width=True,
+    )
+
+
 # ---------------------------------------------------------
 # DISPLAY CURRENT PAGE
 # ---------------------------------------------------------
+
+admin_requested = st.query_params.get("admin", "false").lower() == "true"
+
+if admin_requested:
+    researcher_results_page()
+    st.stop()
 
 current_page = STUDY_STEPS[st.session_state.current_step]
 show_progress()
